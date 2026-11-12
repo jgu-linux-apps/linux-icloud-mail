@@ -1,6 +1,6 @@
 # Linux iCloud Mail
 
-**Version 0.1.10 (2026-11-12)**
+**Version 0.1.11 (2026-11-12)**
 
 A fast, native iCloud Mail client for Ubuntu, built with GTK 4 and libadwaita.
 Instead of wrapping the heavy icloud.com web app, it talks to iCloud Mail
@@ -50,6 +50,7 @@ very large mailboxes.
 
 ## Changes
 
+- **0.1.11** – license: the app is now published under the Freeware License (No Modifications), see `LICENSE`; free to use and share unmodified, modification is not permitted. No other changes in the app.
 - **0.1.10** – no changes in the app: the repository now keeps the source code in `src/`, and the `.deb` is published on the GitHub Releases page (built by GitHub Actions for every version tag); README: installation from Releases, building from source
 - **0.1.9** – group messages by sender (filter menu → Group by Sender)
 - **0.1.8** – credits "Created by: JGu / Supported by Claude" in About and in the sidebar
