@@ -66,9 +66,13 @@ class Worker(threading.Thread):
             except Exception as e:  # IMAP NO/BAD etc.
                 _main(error, e) if error else self.backend._error(str(e))
 
-    def stop(self):
+    def stop(self, drain=False, timeout=10):
+        """drain=True: finish the jobs already queued (e.g. moves waiting for Undo) before stopping."""
+        self.stopped = not drain
+        self.q.put((10 ** 9 if drain else -1, next(self._seq), None, None, None))
+        if drain and self.is_alive():
+            self.join(timeout)
         self.stopped = True
-        self.q.put((-1, next(self._seq), None, None, None))
         try:
             self.session.close()
         except Exception:
@@ -92,6 +96,9 @@ class Backend:
         # messages being moved/deleted right now: {folder: {uid: count}}. Folder sync must not
         # re-add them between the optimistic removal in the UI and the operation on the server.
         self._pending = {}
+        # moves waiting for the Undo toast to expire: {token: (folder, uids, dest)}
+        self._delayed = {}
+        self._tokens = itertools.count(1)
         self.sync_w = Worker(self, "sync")
         self.ops_w = Worker(self, "ops")
         self.pre_w = Worker(self, "prefetch")
@@ -107,8 +114,10 @@ class Backend:
         self.idle_t.start()
 
     def stop(self):
+        self.commit_all()                 # moves still waiting for Undo go to the server now
+        self.ops_w.stop(drain=True)       # ... and the queued operations finish before we stop
         self._stop.set()
-        for w in (self.sync_w, self.ops_w, self.pre_w):
+        for w in (self.sync_w, self.pre_w):
             w.stop()
 
     # ------------------------------------------------ listener plumbing
@@ -233,7 +242,10 @@ class Backend:
         """Run a move/delete with the uids marked as in flight until the server has done it."""
         uids = list(uids)
         self._pending_add(folder, uids)
+        self._submit_removal(folder, uids, job, done, error)
 
+    def _submit_removal(self, folder, uids, job, done, error):
+        """uids are already marked as in flight; the mark is cleared when the job ends."""
         def ok(r):
             self._pending_done(folder, uids)
             if done:
@@ -372,12 +384,46 @@ class Backend:
             s.store(uids, "+FLAGS.SILENT" if add else "-FLAGS.SILENT", flag)
         self.ops_w.submit(job, done, error or self._op_error(folder), prio=1)
 
-    def move(self, folder, uids, dest, done=None, error=None):
+    def _move_job(self, folder, uids, dest):
         def job(s):
             s.select(folder, readonly=False)
             s.move(uids, dest)
             self.cache.delete(folder, uids)
-        self._removal(folder, uids, job, lambda r: (self.sync_folder(dest, prio=6), done and done(r)), error)
+        return job
+
+    def move(self, folder, uids, dest, done=None, error=None):
+        self._removal(folder, uids, self._move_job(folder, uids, dest),
+                      lambda r: (self.sync_folder(dest, prio=6), done and done(r)), error)
+
+    # ------------------------------------------------ moves with Undo
+    def move_delayed(self, folder, uids, dest):
+        """Hide the messages now (in flight: sync will not bring them back) but send the move to the
+        server only on commit(). cancel() = Undo: the server never hears about it. Returns a token."""
+        uids = list(uids)
+        self._pending_add(folder, uids)
+        token = next(self._tokens)
+        self._delayed[token] = (folder, uids, dest)
+        return token
+
+    def commit(self, token):
+        op = self._delayed.pop(token, None)
+        if op is None:
+            return False
+        folder, uids, dest = op
+        self._submit_removal(folder, uids, self._move_job(folder, uids, dest),
+                             lambda r: self.sync_folder(dest, prio=6), None)
+        return True
+
+    def cancel(self, token):
+        op = self._delayed.pop(token, None)
+        if op is None:
+            return False
+        self._pending_done(op[0], op[1])
+        return True
+
+    def commit_all(self):
+        for t in list(self._delayed):
+            self.commit(t)
 
     def delete_forever(self, folder, uids, done=None, error=None):
         def job(s):

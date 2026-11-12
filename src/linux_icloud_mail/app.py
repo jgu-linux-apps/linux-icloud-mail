@@ -62,6 +62,9 @@ class App(Adw.Application):
         add("show", self.show_window)
         add("compose", lambda: self.compose())
         add("open-message", lambda v: self.open_message(*v.unpack()), "(su)")
+        add("notif-read", lambda v: self.notif_action("read", *v.unpack()), "(su)")
+        add("notif-archive", lambda v: self.notif_action("archive", *v.unpack()), "(su)")
+        add("notif-trash", lambda v: self.notif_action("trash", *v.unpack()), "(su)")
         for action, accels in (("app.quit", ["<Control>q"]), ("win.compose", ["<Control>n"]),
                                ("win.reply", ["<Control>r"]), ("win.reply-all", ["<Control><Shift>r"]),
                                ("win.forward", ["<Control><Shift>f"]), ("win.refresh", ["F5"]),
@@ -279,10 +282,35 @@ class App(Adw.Application):
                 body += "\n" + r.preview[:120]
             n.set_body(body)
             n.set_icon(icon)
-            n.set_default_action_and_target("app.open-message", GLib.Variant("(su)", (r.folder, r.uid)))
+            target = GLib.Variant("(su)", (r.folder, r.uid))
+            n.set_default_action_and_target("app.open-message", target)
+            n.add_button_with_target(_("Mark as Read"), "app.notif-read", target)
+            if self.backend and self.backend.role("archive"):
+                n.add_button_with_target(_("Archive"), "app.notif-archive", target)
+            n.add_button_with_target(_("Delete"), "app.notif-trash", target)
             nid = "mail-%s-%d" % (r.folder, r.uid)
             self.send_notification(nid, n)
             self.notified[(r.folder, r.uid)] = nid
+
+    def notif_action(self, what, folder, uid):
+        """Buttons on a new-mail notification: work without opening the window."""
+        w = self.win
+        if w is None or self.backend is None:
+            return
+        it = w.items.get((folder, uid))
+        if it is None:
+            row = self.cache.get(folder, uid) if self.cache else None
+            if row is None:
+                self.withdraw_notifications(folder, [uid])
+                return
+            from .ui_common import MsgItem
+            it = MsgItem(row)
+        if what == "read":
+            w.flag_items([it], "\\Seen", True)
+        elif what == "archive" and self.backend.role("archive"):
+            w.move_items([it], self.backend.role("archive"))
+        elif what == "trash":
+            w.delete_selected(items=[it])
 
     def withdraw_notifications(self, folder, uids):
         """Remove notifications of messages that were opened, read, moved or deleted."""

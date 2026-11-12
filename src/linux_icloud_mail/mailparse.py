@@ -256,7 +256,7 @@ DELIVERY_HEADERS = ("Delivered-To", "X-Original-To", "Envelope-To", "X-Envelope-
 def _headers_dict(msg):
     d = {}
     for n in ("From", "To", "Cc", "Bcc", "Reply-To", "Subject", "Date", "Message-ID",
-              "References", "In-Reply-To", "List-Unsubscribe"):
+              "References", "In-Reply-To", "List-Unsubscribe", "List-Unsubscribe-Post"):
         d[n.lower()] = safe_header(msg, n)
     # address(es) the server actually delivered to - reveals the alias even for Bcc / lists
     delivered = []

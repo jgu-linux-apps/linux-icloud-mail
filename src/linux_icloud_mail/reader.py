@@ -1,7 +1,11 @@
 """Message reader pane."""
 
 import os
+import re
+import shutil
+import subprocess
 import tempfile
+import threading
 
 import gi
 gi.require_version("WebKit", "6.0")
@@ -9,7 +13,11 @@ from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango, WebKit  # noqa: E402
 
 from .i18n import _  # noqa: E402
 from .mailparse import addresses, render  # noqa: E402
-from .ui_common import esc, fmt_date_long, fmt_size, open_file, open_uri, save_file_dialog  # noqa: E402
+from .ui_common import esc, fmt_date_long, fmt_size, open_file, open_uri, save_file_dialog, ask  # noqa: E402
+from . import ics, unsubscribe  # noqa: E402
+from .config import CACHE_DIR  # noqa: E402
+
+CALENDAR_APP = "linux-icloud-calendar"
 
 
 def system_font():
@@ -195,6 +203,17 @@ class Reader(Gtk.Box):
                                  button_label=_("Load Remote Content"))
         self.banner.connect("button-clicked", lambda b: self._load_remote())
         box.append(self.banner)
+        # calendar invitation (.ics): what / when / where + Add to Calendar
+        self.invite = None
+        self.invite_banner = Adw.Banner(button_label=_("Add to Calendar"))
+        self.invite_banner.connect("button-clicked", lambda b: self._add_to_calendar())
+        box.append(self.invite_banner)
+        # mailing list: Unsubscribe (List-Unsubscribe header)
+        self.unsub_info = None
+        self.unsub_banner = Adw.Banner(title=_("This message is from a mailing list."),
+                                       button_label=_("Unsubscribe"))
+        self.unsub_banner.connect("button-clicked", lambda b: self._unsubscribe())
+        box.append(self.unsub_banner)
 
         self.web = make_webview(editable=False)
         self.web.set_vexpand(True)
@@ -274,8 +293,111 @@ class Reader(Gtk.Box):
         self.junk_btn.set_tooltip_text(_("Not Junk") if is_junk else _("Move to Junk"))
         self.archive_btn.set_visible(self.win.folder_role(r.folder) != "archive" and bool(self.win.backend.role("archive")))
         self.web.set_zoom_level(self.win.settings.get("zoom", 1.0) or 1.0)
+        role = self.win.folder_role(r.folder)
+        self.unsub_info = None if role in ("sent", "drafts") else \
+            unsubscribe.parse(parsed.h("list-unsubscribe"), parsed.h("list-unsubscribe-post"))
+        self.unsub_banner.set_revealed(bool(self.unsub_info))
+        self._show_invite(item, parsed)
         self._render()
         self.stack.set_visible_child_name("message")
+
+    # ------------------------------------------------ calendar invitation
+    def _show_invite(self, item, parsed):
+        self.invite = None
+        self.invite_banner.set_revealed(False)
+        att = next((a for a in parsed.attachments if ics.is_invite(a)), None)
+        if att is None:
+            return
+
+        def got(data):
+            if self.item is not item or not data:
+                return
+            ev = ics.parse(data)
+            if not ev:
+                return
+            self.invite = (ev, data)
+            self.invite_banner.set_title(self._invite_title(ev))
+            self.invite_banner.set_button_label(None if ev["cancelled"] else _("Add to Calendar"))
+            self.invite_banner.set_revealed(True)
+        if att.data is not None:
+            got(att.data)
+        else:
+            self.win.backend.fetch_attachment(item.row.folder, item.row.uid, att, got, error=lambda e: None)
+
+    @staticmethod
+    def _invite_title(ev):
+        start, end = ics.timestamp(ev["start"]), ics.timestamp(ev["end"])
+        a = GLib.DateTime.new_from_unix_local(start)
+        if ev["allday"]:
+            when = a.format("%a, %-d %b %Y") + " · " + _("all day")
+        else:
+            b = GLib.DateTime.new_from_unix_local(end)
+            same = a.format("%Y%m%d") == b.format("%Y%m%d")
+            when = a.format("%a, %-d %b %Y, %H:%M") + "–" + (b.format("%H:%M") if same else b.format("%-d %b %H:%M"))
+        parts = [("❌ " + _("Cancelled") + ": " if ev["cancelled"] else "📅 ") + (ev["summary"] or _("Event")), when]
+        if ev["location"]:
+            parts.append(ev["location"])
+        return "  ·  ".join(p.replace("\n", " ") for p in parts)
+
+    def _add_to_calendar(self):
+        if not self.invite:
+            return
+        ev, data = self.invite
+        d = os.path.join(CACHE_DIR, "invites")
+        os.makedirs(d, exist_ok=True)
+        name = re.sub(r"[^\w.-]+", "_", ev["summary"] or "invite")[:60] or "invite"
+        path = os.path.join(d, name + ".ics")
+        with open(path, "wb") as f:
+            f.write(data if isinstance(data, bytes) else data.encode("utf-8"))
+        exe = shutil.which(CALENDAR_APP)
+        if exe:
+            subprocess.Popen([exe, "--import", path], start_new_session=True,
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            self.win.toast(_("Opening in Linux iCloud Calendar…"))
+        else:
+            open_file(self.win, path)
+
+    # ------------------------------------------------ mailing list unsubscribe
+    def _unsubscribe(self):
+        info = self.unsub_info
+        m = unsubscribe.method(info)
+        if not m:
+            return
+        tgt = unsubscribe.target(info)
+        body = {"one_click": _("An unsubscribe request will be sent to %s."),
+                "mailto": _("A new message to %s will open. Send it to unsubscribe."),
+                "url": _("The unsubscribe page on %s will open in your browser.")}[m] % tgt
+        ask(self.win, _("Unsubscribe from this mailing list?"), body,
+            [("cancel", _("Cancel"), None), ("go", _("Unsubscribe"), "suggested")],
+            lambda r: r == "go" and self._do_unsubscribe(m, info), default="go")
+
+    def _do_unsubscribe(self, m, info):
+        item = self.item
+        if m == "mailto":
+            self.win.app.compose(mailto=info["mailto"])
+            return
+        if m == "url":
+            open_uri(self.win, info["url"])
+            return
+
+        def work():
+            try:
+                ok = 200 <= unsubscribe.one_click(info["one_click"]) < 300
+            except Exception:  # noqa
+                ok = False
+            GLib.idle_add(lambda: (done(ok), False)[1])
+
+        def done(ok):
+            if not ok:
+                self.win.toast(_("Unsubscribing failed. Try again later."))
+                return
+            if self.item is item:
+                self.unsub_banner.set_revealed(False)
+            main = getattr(self.win, "main", self.win)
+            t = Adw.Toast(title=_("Unsubscribed"), button_label=_("Move to Trash"), timeout=8)
+            t.connect("button-clicked", lambda *_a: main.delete_selected(items=[item]))
+            self.win.toasts.add_toast(t)
+        threading.Thread(target=work, daemon=True, name="lim-unsubscribe").start()
 
     def update_flags(self):
         if not self.item:

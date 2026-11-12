@@ -1,6 +1,6 @@
 # Linux iCloud Mail
 
-**Version 0.1.12 (2026-11-12)**
+**Version 0.2.0 (2026-11-12)**
 
 A fast, native iCloud Mail client for Ubuntu, built with GTK 4 and libadwaita.
 Instead of wrapping the heavy icloud.com web app, it talks to iCloud Mail
@@ -15,6 +15,7 @@ very large mailboxes.
 - Recent messages are prefetched in the background, so most open instantly
 - Push for new mail (IMAP IDLE), no polling delay
 - Desktop notifications for new mail; clicking one opens the message and marks it as read
+- Buttons on new-mail notifications: **Mark as Read**, **Archive**, **Delete** (moves to Trash), without opening the window
 - Notifications disappear automatically when the message is read, moved or deleted (also on iPhone / icloud.com)
 - Tray icon; closing the window minimizes the app to the tray
 - Right-click the tray icon → **Quit** to close the app
@@ -33,6 +34,9 @@ very large mailboxes.
 - Attachments: open, save, "Download All" straight to the Downloads folder; add them with a button or by dragging files onto the composer
 - Drafts: save manually (Ctrl+S), autosave every minute, continue editing from the Drafts folder
 - Flag / unflag, mark read / unread, move, archive, junk / not junk, delete
+- **Undo** for delete, archive, junk and move: the action reaches iCloud only after the 5-second Undo toast
+- **Unsubscribe** bar for mailing lists (List-Unsubscribe): one-click (RFC 8058), by e-mail or on the sender's page, always after a confirmation
+- **Calendar invitations** (.ics): a bar with what / when / where; **Add to Calendar** opens Linux iCloud Calendar with the event filled in
 - Drag & drop messages onto a folder in the sidebar to move them
 - Multi-selection (Ctrl / Shift + click) with bulk actions
 - Right-click menu on messages with the 3 most recently used folders for "Move to…"
@@ -50,6 +54,7 @@ very large mailboxes.
 
 ## Changes
 
+- **0.2.0** – Undo (5 s) for delete, archive, junk and move; Unsubscribe bar for mailing lists; Mark as Read / Archive / Delete buttons on notifications; calendar invitation bar with Add to Calendar (Linux iCloud Calendar 0.1.6 or newer, otherwise the default calendar app)
 - **0.1.12** – fix: a deleted or moved message no longer comes back in the list as an empty entry that cannot be opened ("message not found"); a folder refresh that ran while the delete was still waiting for the server re-added it. A message that is no longer on the server now disappears from the list as soon as you try to open it. Delete right after start (before the folder list has loaded, or when offline) no longer offers a permanent delete: the app remembers which folder is Trash between runs, and otherwise loads the folders first and then moves the message to Trash.
 - **0.1.11** – license: the app is now published under the Freeware License (No Modifications), see `LICENSE`; free to use and share unmodified, modification is not permitted. No other changes in the app.
 - **0.1.10** – no changes in the app: the repository now keeps the source code in `src/`, and the `.deb` is published on the GitHub Releases page (built by GitHub Actions for every version tag); README: installation from Releases, building from source

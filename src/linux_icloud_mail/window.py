@@ -1019,7 +1019,10 @@ class MainWindow(Adw.ApplicationWindow):
         return min(positions) if positions else -1
 
     def _finish_removal(self, items, pos):
-        self._cancel_mark()
+        keys = {i.key for i in items}
+        reading = self.reader.item is not None and self.reader.item.key in keys
+        if reading:
+            self._cancel_mark()
         self._remove_items(items)
         n = self.filtered.get_n_items()
         self._update_empty()
@@ -1027,7 +1030,8 @@ class MainWindow(Adw.ApplicationWindow):
         if n and pos >= 0:
             pos = min(pos, n - 1)
             self.sel.select_item(pos, True)
-        else:
+        elif reading or not n:
+            # (messages removed from outside the list, e.g. from a notification, keep the reader as is)
             self.reader.show_empty()
 
     def move_items(self, items, dest):
@@ -1038,21 +1042,69 @@ class MainWindow(Adw.ApplicationWindow):
         by_folder = {}
         for it in items:
             by_folder.setdefault(it.row.folder, []).append(it)
+        tokens, restore = [], []
         for folder, its in by_folder.items():
             uids = [i.row.uid for i in its]
             self.app.withdraw_notifications(folder, uids)
             unseen = sum(1 for i in its if not i.row.seen)
             self.cache.delete(folder, uids)
-            self.backend.move(folder, uids, dest)
-            t, u = self.counts.get(folder, (0, 0))
-            self.counts[folder] = (max(0, t - len(its)), max(0, u - unseen))
-            t, u = self.counts.get(dest, (0, 0))
-            self.counts[dest] = (t + len(its), u + unseen)
+            tokens.append(self.backend.move_delayed(folder, uids, dest))
+            restore.append((folder, [i.row for i in its], unseen))
+            self._count_move(folder, dest, len(its), unseen)
         self._finish_removal(items, pos)
         self.update_counts()
         rec = [dest] + [f for f in self.settings["recent_folders"] if f != dest]
         self.settings["recent_folders"] = rec[:6]
-        self.toast(_("Moved to %s") % self.folder_display(dest))
+        self._undo_toast(_("Moved to %s") % self.folder_display(dest), tokens, restore, dest)
+
+    def _count_move(self, src, dest, n, unseen, sign=1):
+        t, u = self.counts.get(src, (0, 0))
+        self.counts[src] = (max(0, t - sign * n), max(0, u - sign * unseen))
+        t, u = self.counts.get(dest, (0, 0))
+        self.counts[dest] = (max(0, t + sign * n), max(0, u + sign * unseen))
+
+    UNDO_SECONDS = 5
+
+    def _undo_toast(self, text, tokens, restore, dest):
+        """Toast with Undo. The move reaches the server only when the toast goes away (or after a
+        safety timeout); Undo cancels it before the server ever sees it."""
+        state = {"done": False}
+
+        def commit(*_a):
+            if not state["done"]:
+                state["done"] = True
+                for t in tokens:
+                    self.backend.commit(t)
+            return False
+
+        def undo(*_a):
+            if state["done"]:
+                return
+            state["done"] = True
+            for t in tokens:
+                self.backend.cancel(t)
+            first = None
+            for folder, rows, unseen in restore:
+                self.cache.insert(rows)
+                self._count_move(folder, dest, len(rows), unseen, sign=-1)
+                if folder == self.current:
+                    self._insert_rows(rows)
+                    first = first or self.items.get((rows[0].folder, rows[0].uid))
+            self.update_counts()
+            self._update_empty()
+            self._update_subtitle()
+            if first is not None:
+                pos = self._position_of(first)
+                if pos >= 0:
+                    self.sel.select_item(pos, True)
+            self.toast(_("Undone"))
+
+        t = Adw.Toast(title=text, button_label=_("Undo"), timeout=self.UNDO_SECONDS)
+        t.set_priority(Adw.ToastPriority.HIGH)      # a newer action replaces (and commits) the older one
+        t.connect("button-clicked", undo)
+        t.connect("dismissed", commit)
+        GLib.timeout_add_seconds(self.UNDO_SECONDS + 3, commit)
+        self.toasts.add_toast(t)
 
     def delete_selected(self, force=False, items=None, parent=None, done=None, _retried=False):
         items = items if items is not None else self.selected_items()
