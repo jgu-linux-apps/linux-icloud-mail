@@ -54,7 +54,7 @@ very large mailboxes.
 
 ## Changes
 
-- **0.2.0** – Undo (5 s) for delete, archive, junk and move; Unsubscribe bar for mailing lists; Mark as Read / Archive / Delete buttons on notifications; calendar invitation bar with Add to Calendar (Linux iCloud Calendar 0.1.6 or newer, otherwise the default calendar app)
+- **0.2.0** – Undo (5 s) for delete, archive, junk and move; Unsubscribe bar for mailing lists; Mark as Read / Archive / Delete buttons on notifications; calendar invitation bar with Add to Calendar (Linux iCloud Calendar 0.1.6 or newer, otherwise the default calendar app); clicking a notification removes it also when it was shown before the app was restarted or updated
 - **0.1.12** – fix: a deleted or moved message no longer comes back in the list as an empty entry that cannot be opened ("message not found"); a folder refresh that ran while the delete was still waiting for the server re-added it. A message that is no longer on the server now disappears from the list as soon as you try to open it. Delete right after start (before the folder list has loaded, or when offline) no longer offers a permanent delete: the app remembers which folder is Trash between runs, and otherwise loads the folders first and then moves the message to Trash.
 - **0.1.11** – license: the app is now published under the Freeware License (No Modifications), see `LICENSE`; free to use and share unmodified, modification is not permitted. No other changes in the app.
 - **0.1.10** – no changes in the app: the repository now keeps the source code in `src/`, and the `.deb` is published on the GitHub Releases page (built by GitHub Actions for every version tag); README: installation from Releases, building from source

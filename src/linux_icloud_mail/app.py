@@ -288,9 +288,13 @@ class App(Adw.Application):
             if self.backend and self.backend.role("archive"):
                 n.add_button_with_target(_("Archive"), "app.notif-archive", target)
             n.add_button_with_target(_("Delete"), "app.notif-trash", target)
-            nid = "mail-%s-%d" % (r.folder, r.uid)
+            nid = self._notif_id(r.folder, r.uid)
             self.send_notification(nid, n)
             self.notified[(r.folder, r.uid)] = nid
+
+    @staticmethod
+    def _notif_id(folder, uid):
+        return "mail-%s-%d" % (folder, uid)
 
     def notif_action(self, what, folder, uid):
         """Buttons on a new-mail notification: work without opening the window."""
@@ -314,8 +318,12 @@ class App(Adw.Application):
 
     def withdraw_notifications(self, folder, uids):
         """Remove notifications of messages that were opened, read, moved or deleted."""
+        # Notification ids are predictable, so also remove ones this process did not send itself
+        # (sent before the app was restarted / updated). Only for a few INBOX messages at a time:
+        # a big sync must not fire hundreds of D-Bus calls.
+        fallback = folder == "INBOX" and len(uids) <= 50
         for uid in uids:
-            nid = self.notified.pop((folder, uid), None)
+            nid = self.notified.pop((folder, uid), None) or (self._notif_id(folder, uid) if fallback else None)
             if nid:
                 self.withdraw_notification(nid)
             if (folder, uid) in self.summary_keys:
@@ -327,7 +335,7 @@ class App(Adw.Application):
         # clicked notification: it has done its job - remove it from GNOME
         if uid:
             self.withdraw_notifications(folder, [uid])
-        elif self.summary_keys:
+        else:                                   # the "N new messages" summary (maybe from before a restart)
             self.summary_keys.clear()
             self.withdraw_notification("new-mail")
         self.show_window()
