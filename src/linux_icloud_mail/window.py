@@ -1054,11 +1054,18 @@ class MainWindow(Adw.ApplicationWindow):
         self.settings["recent_folders"] = rec[:6]
         self.toast(_("Moved to %s") % self.folder_display(dest))
 
-    def delete_selected(self, force=False, items=None, parent=None, done=None):
+    def delete_selected(self, force=False, items=None, parent=None, done=None, _retried=False):
         items = items if items is not None else self.selected_items()
         if not items:
             return
         trash = self.backend.role("trash")
+        if not trash and not force and not _retried:
+            # folder list not loaded yet (just started, offline): never fall back to a permanent
+            # delete silently - load the folders first, then move to Trash
+            self.toast(_("Loading folders…"))
+            self.backend.refresh_folders(done=lambda: self.delete_selected(
+                items=items, parent=parent, done=done, _retried=True))
+            return
         in_trash = [i for i in items if i.row.folder == trash or not trash]
         others = [i for i in items if i not in in_trash]
         if force:

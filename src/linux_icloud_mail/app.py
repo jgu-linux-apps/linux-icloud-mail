@@ -146,6 +146,11 @@ class App(Adw.Application):
         self._auth_dialog = False
         self.cache = Cache(email)
         self.backend = Backend(email, pw, self.cache, self, **self.server_overrides())
+        # folder roles (which folder is Trash, Archive…) from the last run: known before the
+        # folder list arrives from the server, so Delete moves to Trash right after start
+        saved = self.settings.get("folder_roles") or {}
+        if saved.get("_account") == email:
+            self.backend.roles = {k: v for k, v in saved.items() if k != "_account"}
         self.win = MainWindow(self)
         if not hidden:
             self.win.present()
@@ -388,6 +393,7 @@ class App(Adw.Application):
         email = self.settings["email"]
         self._shutdown_main()
         config.clear_password(email)
+        self.settings["folder_roles"] = {}
         if self.cache:
             self.cache.wipe()
         self.cache = None
@@ -409,6 +415,10 @@ class App(Adw.Application):
 
     # ================================================================ backend listener
     def on_folders(self, folders, counts):
+        if self.backend and self.backend.roles:
+            roles = dict(self.backend.roles, _account=self.settings["email"])
+            if roles != self.settings.get("folder_roles"):
+                self.settings["folder_roles"] = roles
         if self.win:
             self.win.on_folders(folders, counts)
 
