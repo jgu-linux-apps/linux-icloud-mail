@@ -12,6 +12,7 @@ import threading
 from gi.repository import GLib
 
 from . import IMAP_HOST, IMAP_PORT, SMTP_HOST, SMTP_PORT
+from .i18n import _
 from .imapcore import FULL_FETCH_LIMIT, AuthError, Session
 from .mailparse import decode_part, parse_full, parse_structured
 
@@ -22,6 +23,10 @@ FLAG_REFRESH = 3000
 def _main(fn, *a):
     if fn is not None:
         GLib.idle_add(lambda: (fn(*a), False)[1])
+
+
+def GONE_TEXT():
+    return _("This message has been moved or deleted.")
 
 
 class Worker(threading.Thread):
@@ -84,6 +89,9 @@ class Backend:
         self._stop = threading.Event()
         self._syncing = set()
         self._sync_lock = threading.Lock()
+        # messages being moved/deleted right now: {folder: {uid: count}}. Folder sync must not
+        # re-add them between the optimistic removal in the UI and the operation on the server.
+        self._pending = {}
         self.sync_w = Worker(self, "sync")
         self.ops_w = Worker(self, "ops")
         self.pre_w = Worker(self, "prefetch")
@@ -198,6 +206,45 @@ class Backend:
             self._syncing.discard(folder)
         self.L.on_error(str(e))
 
+    # ------------------------------------------------ removals in flight
+    def _pending_add(self, folder, uids):
+        with self._sync_lock:
+            f = self._pending.setdefault(folder, {})
+            for u in uids:
+                f[u] = f.get(u, 0) + 1
+
+    def _pending_done(self, folder, uids):
+        with self._sync_lock:
+            f = self._pending.get(folder, {})
+            for u in uids:
+                n = f.get(u, 0) - 1
+                if n > 0:
+                    f[u] = n
+                else:
+                    f.pop(u, None)
+            if not f:
+                self._pending.pop(folder, None)
+
+    def pending(self, folder):
+        with self._sync_lock:
+            return set(self._pending.get(folder, ()))
+
+    def _removal(self, folder, uids, job, done, error):
+        """Run a move/delete with the uids marked as in flight until the server has done it."""
+        uids = list(uids)
+        self._pending_add(folder, uids)
+
+        def ok(r):
+            self._pending_done(folder, uids)
+            if done:
+                done(r)
+
+        def err(e):
+            self._pending_done(folder, uids)
+            (error or self._op_error(folder))(e)
+
+        self.ops_w.submit(job, ok, err, prio=1)
+
     def _sync_job(self, s, folder):
         cache = self.cache
         s.selected = None          # always re-select to get a fresh EXISTS/UIDVALIDITY
@@ -213,12 +260,16 @@ class Backend:
         if removed:
             cache.delete(folder, removed)
             _main(self.L.on_removed, folder, removed)
+        server -= self.pending(folder)       # being moved/deleted: not "new", even if still on the server
         new = sorted(server - cached, reverse=True)
         fresh_rows = []
         for i in range(0, len(new), 250):
             chunk = new[i:i + 250]
             with_preview = (not empty_cache) or i < PREVIEW_FIRST_SYNC
             rows = s.fetch_headers(folder, chunk, preview=with_preview)
+            gone = self.pending(folder)          # a removal may have started during the fetch
+            if gone:
+                rows = [r for r in rows if r.uid not in gone]
             cache.insert(rows)
             _main(self.L.on_added, folder, rows)
             if not empty_cache:
@@ -252,6 +303,8 @@ class Backend:
         s.select(folder, readonly=True)
         if size and size > FULL_FETCH_LIMIT:
             leaves, hdr = s.fetch_structure(uid)
+            if not leaves and not hdr:
+                raise LookupError(GONE_TEXT())
             want = [p.part_id for p in leaves
                     if (p.maintype == "text" and p.subtype in ("plain", "html") and not p.filename
                         and p.disposition != "attachment")
@@ -262,12 +315,18 @@ class Backend:
             return parse_structured(hdr, leaves, texts)
         raw = s.fetch_raw(uid)
         if raw is None:
-            raise LookupError("message not found")
+            raise LookupError(GONE_TEXT())
         self.cache.put_body(folder, uid, raw)
         return parse_full(raw)
 
     def fetch_body(self, folder, uid, size, done, error=None):
-        self.ops_w.submit(lambda s: self._load_body(s, folder, uid, size), done, error, prio=0)
+        def err(e):
+            if isinstance(e, LookupError):
+                # no longer on the server (moved or deleted elsewhere): a sync drops it from the list
+                self.sync_folder(folder, prio=2)
+            if error:
+                error(e)
+        self.ops_w.submit(lambda s: self._load_body(s, folder, uid, size), done, err, prio=0)
 
     def prefetch(self, folder, rows):
         def job(s):
@@ -318,8 +377,7 @@ class Backend:
             s.select(folder, readonly=False)
             s.move(uids, dest)
             self.cache.delete(folder, uids)
-        self.ops_w.submit(job, lambda r: (self.sync_folder(dest, prio=6), done and done(r)),
-                          error or self._op_error(folder), prio=1)
+        self._removal(folder, uids, job, lambda r: (self.sync_folder(dest, prio=6), done and done(r)), error)
 
     def delete_forever(self, folder, uids, done=None, error=None):
         def job(s):
@@ -327,7 +385,7 @@ class Backend:
             s.store(uids, "+FLAGS.SILENT", "\\Deleted")
             s.expunge(uids)
             self.cache.delete(folder, uids)
-        self.ops_w.submit(job, done, error or self._op_error(folder), prio=1)
+        self._removal(folder, uids, job, done, error)
 
     def empty_folder(self, folder, done=None):
         def job(s):

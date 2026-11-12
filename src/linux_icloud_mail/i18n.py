@@ -77,6 +77,7 @@ PL = {
     "Move to Junk": "Przenieś do wiadomości-śmieci",
     "Not Junk": "To nie są śmieci",
     "Move to Trash": "Przenieś do kosza",
+    "This message has been moved or deleted.": "Ta wiadomość została przeniesiona lub usunięta.",
     "Delete Permanently": "Usuń trwale",
     "Move to…": "Przenieś do…",
     "Flag": "Oflaguj",
