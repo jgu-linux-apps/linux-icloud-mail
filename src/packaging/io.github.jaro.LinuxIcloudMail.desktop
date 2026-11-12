@@ -1,0 +1,22 @@
+[Desktop Entry]
+Type=Application
+Name=Linux iCloud Mail
+GenericName=Mail Client
+GenericName[pl]=Klient poczty
+Comment=Fast native iCloud Mail client
+Comment[pl]=Szybki, natywny klient iCloud Mail
+Exec=linux-icloud-mail %u
+Icon=io.github.jaro.LinuxIcloudMail
+Terminal=false
+Categories=Network;Email;GTK;
+MimeType=x-scheme-handler/mailto;
+Keywords=mail;email;icloud;apple;imap;poczta;
+StartupNotify=true
+StartupWMClass=io.github.jaro.LinuxIcloudMail
+X-GNOME-UsesNotifications=true
+Actions=compose;
+
+[Desktop Action compose]
+Name=New Message
+Name[pl]=Nowa wiadomość
+Exec=linux-icloud-mail mailto:

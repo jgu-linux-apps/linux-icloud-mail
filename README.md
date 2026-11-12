@@ -1,6 +1,6 @@
 # Linux iCloud Mail
 
-**Version 0.1.9 (2026-11-06)**
+**Version 0.1.10 (2026-11-12)**
 
 A fast, native iCloud Mail client for Ubuntu, built with GTK 4 and libadwaita.
 Instead of wrapping the heavy icloud.com web app, it talks to iCloud Mail
@@ -50,6 +50,7 @@ very large mailboxes.
 
 ## Changes
 
+- **0.1.10** – no changes in the app: the repository now keeps the source code in `src/`, and the `.deb` is published on the GitHub Releases page (built by GitHub Actions for every version tag); README: installation from Releases, building from source
 - **0.1.9** – group messages by sender (filter menu → Group by Sender)
 - **0.1.8** – credits "Created by: JGu / Supported by Claude" in About and in the sidebar
 - **0.1.7** – double-click / Enter opens a message in a separate window; remote images in quoted text are blocked in the composer too
@@ -68,8 +69,10 @@ very large mailboxes.
 
 ## Installation
 
+Download the newest `linux-icloud-mail_<version>_all.deb` from the [Releases page](https://github.com/jgu-linux-apps/linux-icloud-mail/releases/latest) and install it:
+
 ```bash
-sudo apt install ./linux-icloud-mail_0.1.9_all.deb
+sudo apt install ./linux-icloud-mail_<version>_all.deb
 ```
 
 Start **Linux iCloud Mail** from the app grid, or run `linux-icloud-mail` in a
@@ -80,6 +83,10 @@ Uninstall:
 ```bash
 sudo apt remove linux-icloud-mail
 ```
+
+## Building from source
+
+The source code is in the `src/` folder of this repository; the `.deb` packages are not kept in git but attached to [GitHub Releases](https://github.com/jgu-linux-apps/linux-icloud-mail/releases). Inside `src/`, `bash build_deb.sh` builds `dist/linux-icloud-mail_<version>_all.deb` (the version comes from `VERSION` in `linux_icloud_mail/__init__.py`). Pushing a tag `vX.Y.Z` with the same version makes GitHub Actions (`.github/workflows/release.yml`) build the package and publish the release.
 
 ## First sign-in (app-specific password)
 

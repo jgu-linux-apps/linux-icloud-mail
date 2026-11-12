@@ -1,0 +1,9 @@
+#!/bin/sh
+# Linux iCloud Mail launcher.
+# When started from a terminal the app detaches, so closing the terminal does not close it.
+APPDIR=/usr/lib/linux-icloud-mail
+if [ -t 1 ] && [ -z "$LIM_FOREGROUND" ] && command -v setsid >/dev/null 2>&1; then
+    PYTHONPATH="$APPDIR" setsid -f /usr/bin/python3 -m linux_icloud_mail "$@" >/dev/null 2>&1 </dev/null
+    exit 0
+fi
+PYTHONPATH="$APPDIR" exec /usr/bin/python3 -m linux_icloud_mail "$@"

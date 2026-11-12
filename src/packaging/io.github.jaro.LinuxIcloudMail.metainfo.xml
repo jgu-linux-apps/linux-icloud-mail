@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.jaro.LinuxIcloudMail</id>
+  <name>Linux iCloud Mail</name>
+  <summary>Fast native iCloud Mail client</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>LicenseRef-proprietary</project_license>
+  <developer id="io.github.jaro"><name>JGu</name></developer>
+  <description>
+    <p>A fast, native GTK 4 / libadwaita client for iCloud Mail with tray icon, push notifications,
+    rich-text composer and automatic light/dark theme (including the app icon).</p>
+  </description>
+  <launchable type="desktop-id">io.github.jaro.LinuxIcloudMail.desktop</launchable>
+  <releases><release version="0.1.10" date="2026-11-12"/><release version="0.1.9" date="2026-11-06"/><release version="0.1.8" date="2026-11-06"/><release version="0.1.7" date="2026-11-05"/><release version="0.1.6" date="2026-11-05"/><release version="0.1.5" date="2026-11-04"/><release version="0.1.4" date="2026-11-04"/><release version="0.1.3" date="2026-11-04"/><release version="0.1.2" date="2026-11-04"/><release version="0.1.1" date="2026-11-04"/><release version="0.1.0" date="2026-11-04"/></releases>
+  <content_rating type="oars-1.1"/>
+</component>

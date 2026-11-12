@@ -1,0 +1,238 @@
+"""UI language: Polish when the system language is Polish, otherwise English."""
+
+import os
+
+
+def _detect():
+    for var in ("LANGUAGE", "LC_ALL", "LC_MESSAGES", "LANG"):
+        v = os.environ.get(var)
+        if v:
+            return v.split(":")[0].lower()
+    return "en"
+
+
+LANG = "pl" if _detect().startswith("pl") else "en"
+
+PL = {
+    # app / general
+    "Mail": "Poczta",
+    "Inbox": "Odebrane",
+    "Drafts": "Robocze",
+    "Sent": "Wysłane",
+    "Junk": "Wiadomości-śmieci",
+    "Trash": "Kosz",
+    "Archive": "Archiwum",
+    "Flagged": "Oflagowane",
+    "Mailboxes": "Skrzynki",
+    "Folders": "Foldery",
+    "New Message": "Nowa wiadomość",
+    "Check Mail": "Sprawdź pocztę",
+    "Search mail": "Szukaj w poczcie",
+    "Preferences": "Ustawienia",
+    "Keyboard Shortcuts": "Skróty klawiszowe",
+    "About Linux iCloud Mail": "O programie Linux iCloud Mail",
+    "Sign Out": "Wyloguj",
+    "Quit": "Zakończ",
+    "Show Window": "Pokaż okno",
+    "Hide Window": "Ukryj okno",
+    "Offline – trying to reconnect…": "Brak połączenia – ponawiam próbę…",
+    "Retry": "Ponów",
+    "Updating…": "Aktualizuję…",
+    "No messages": "Brak wiadomości",
+    "This mailbox is empty.": "Ta skrzynka jest pusta.",
+    "No message selected": "Nie wybrano wiadomości",
+    "Select a message to read it.": "Wybierz wiadomość, aby ją przeczytać.",
+    "%d messages selected": "Zaznaczone wiadomości: %d",
+    "%d messages": "Wiadomości: %d",
+    "%d unread": "nieprzeczytane: %d",
+    "All Messages": "Wszystkie wiadomości",
+    "Unread": "Nieprzeczytane",
+    "With Attachments": "Z załącznikami",
+    "Filter": "Filtr",
+    "Group by Sender": "Grupuj według nadawcy",
+    "Select All from Sender": "Zaznacz wszystkie od tego nadawcy",
+    "%d messages from this sender": "Wiadomości od tego nadawcy: %d",
+    "Expand": "Rozwiń",
+    "Collapse": "Zwiń",
+    "Search results on server: %d": "Wyniki wyszukiwania na serwerze: %d",
+    "Press Enter to search the whole mailbox on the server":
+        "Naciśnij Enter, aby przeszukać całą skrzynkę na serwerze",
+    "Searching…": "Szukam…",
+    "Yesterday": "Wczoraj",
+    "(no subject)": "(bez tematu)",
+    "(no sender)": "(brak nadawcy)",
+    "Loading…": "Wczytuję…",
+    "Could not load the message": "Nie udało się wczytać wiadomości",
+    "Error": "Błąd",
+    "Cancel": "Anuluj",
+    "Delete": "Usuń",
+    "Close": "Zamknij",
+    "Save": "Zapisz",
+    "Open": "Otwórz",
+    # actions
+    "Reply": "Odpowiedz",
+    "Reply All": "Odpowiedz wszystkim",
+    "Forward": "Przekaż dalej",
+    "Move to Archive": "Przenieś do archiwum",
+    "Move to Junk": "Przenieś do wiadomości-śmieci",
+    "Not Junk": "To nie są śmieci",
+    "Move to Trash": "Przenieś do kosza",
+    "Delete Permanently": "Usuń trwale",
+    "Move to…": "Przenieś do…",
+    "Flag": "Oflaguj",
+    "Unflag": "Usuń flagę",
+    "Mark as Read": "Oznacz jako przeczytane",
+    "Mark as Unread": "Oznacz jako nieprzeczytane",
+    "Mark All as Read": "Oznacz wszystkie jako przeczytane",
+    "Print…": "Drukuj…",
+    "View Source": "Pokaż źródło",
+    "Save as .eml…": "Zapisz jako .eml…",
+    "Show Original Colors": "Pokaż oryginalne kolory",
+    "Zoom In": "Powiększ",
+    "Zoom Out": "Pomniejsz",
+    "More": "Więcej",
+    "New Folder…": "Nowy folder…",
+    "Rename Folder…": "Zmień nazwę folderu…",
+    "Delete Folder…": "Usuń folder…",
+    "Empty Trash…": "Opróżnij kosz…",
+    "Empty Junk…": "Opróżnij wiadomości-śmieci…",
+    "Folder name": "Nazwa folderu",
+    "Create": "Utwórz",
+    "Rename": "Zmień nazwę",
+    "Delete folder “%s”?": "Usunąć folder „%s”?",
+    "All messages in this folder will be deleted.": "Wszystkie wiadomości w tym folderze zostaną usunięte.",
+    "Empty “%s”?": "Opróżnić „%s”?",
+    "Messages will be deleted permanently.": "Wiadomości zostaną usunięte trwale.",
+    "Delete %d messages permanently?": "Usunąć trwale wiadomości (%d)?",
+    "Delete message permanently?": "Usunąć wiadomość trwale?",
+    "This cannot be undone.": "Tej operacji nie można cofnąć.",
+    "Moved to %s": "Przeniesiono do: %s",
+    "Deleted": "Usunięto",
+    "Message sent": "Wiadomość wysłana",
+    "Draft saved": "Zapisano wersję roboczą",
+    # reader
+    "From": "Od",
+    "To": "Do",
+    "Cc": "DW",
+    "Bcc": "UDW",
+    "Reply-To": "Odpowiedz do",
+    "Subject": "Temat",
+    "Date": "Data",
+    "Remote content is blocked to protect your privacy.":
+        "Zawartość zdalna jest zablokowana, aby chronić Twoją prywatność.",
+    "Load Remote Content": "Wczytaj zawartość",
+    "Attachments": "Załączniki",
+    "Download All": "Pobierz wszystkie",
+    "Save all attachments to the Downloads folder": "Zapisz wszystkie załączniki w folderze Pobrane",
+    "%d attachments saved to %s": "Zapisano załączniki (%d) w folderze %s",
+    "Open Folder": "Otwórz folder",
+    "Save Attachment": "Zapisz załącznik",
+    "Saved to %s": "Zapisano w: %s",
+    "Unsubscribe": "Wypisz się",
+    "to": "do",
+    # composer
+    "Send": "Wyślij",
+    "Sending…": "Wysyłanie…",
+    "Attach Files…": "Dołącz pliki…",
+    "Save Draft": "Zapisz wersję roboczą",
+    "Discard": "Odrzuć",
+    "Bold": "Pogrubienie",
+    "Italic": "Kursywa",
+    "Underline": "Podkreślenie",
+    "Strikethrough": "Przekreślenie",
+    "Bulleted List": "Lista punktowana",
+    "Numbered List": "Lista numerowana",
+    "Increase Quote Level": "Zwiększ poziom cytatu",
+    "Decrease Quote Level": "Zmniejsz poziom cytatu",
+    "Insert Link…": "Wstaw link…",
+    "Remove Formatting": "Usuń formatowanie",
+    "Text Size": "Rozmiar tekstu",
+    "Small": "Mały",
+    "Normal": "Normalny",
+    "Large": "Duży",
+    "Huge": "Bardzo duży",
+    "Link address": "Adres linku",
+    "Insert": "Wstaw",
+    "Save this message as a draft?": "Zapisać wiadomość jako wersję roboczą?",
+    "You can finish it later from the Drafts folder.":
+        "Możesz ją dokończyć później w folderze Robocze.",
+    "Please add at least one recipient.": "Dodaj co najmniej jednego odbiorcę.",
+    "Invalid address: %s": "Nieprawidłowy adres: %s",
+    "Send without a subject?": "Wysłać bez tematu?",
+    "Send Anyway": "Wyślij mimo to",
+    "Sending failed": "Wysyłanie nie powiodło się",
+    "On %s, %s wrote:": "W dniu %s %s napisał(a):",
+    "Forwarded message": "Przekazana wiadomość",
+    "Drop files to attach": "Upuść pliki, aby je dołączyć",
+    "Edit Draft": "Edytuj wersję roboczą",
+    # login
+    "Sign in to iCloud Mail": "Zaloguj się do iCloud Mail",
+    "Use your iCloud email address and an app-specific password.":
+        "Użyj adresu e-mail iCloud i hasła dla aplikacji.",
+    "iCloud email address": "Adres e-mail iCloud",
+    "App-specific password": "Hasło dla aplikacji",
+    "How to create an app-specific password": "Jak utworzyć hasło dla aplikacji",
+    "Sign in at account.apple.com → Sign-In and Security → App-Specific Passwords, create a "
+    "password named e.g. “Linux Mail” and paste it here. Your normal Apple ID password and "
+    "two-factor codes do not work for mail apps.":
+        "Zaloguj się na account.apple.com → Logowanie i bezpieczeństwo → Hasła dla aplikacji, "
+        "utwórz hasło np. „Linux Mail” i wklej je tutaj. Zwykłe hasło Apple ID i kody "
+        "dwuetapowe nie działają w programach pocztowych.",
+    "Open account.apple.com": "Otwórz account.apple.com",
+    "Sign In": "Zaloguj",
+    "Signing in…": "Logowanie…",
+    "Start automatically and stay in the tray": "Uruchamiaj automatycznie i działaj w trayu",
+    "Sign-in failed: %s": "Logowanie nie powiodło się: %s",
+    "Check the address and the app-specific password.":
+        "Sprawdź adres i hasło dla aplikacji.",
+    "Session expired or password revoked. Please sign in again.":
+        "Sesja wygasła lub hasło zostało unieważnione. Zaloguj się ponownie.",
+    # prefs
+    "General": "Ogólne",
+    "Reading": "Czytanie",
+    "Account": "Konto",
+    "Notifications": "Powiadomienia",
+    "Show a notification for new mail in the Inbox":
+        "Pokazuj powiadomienie o nowej poczcie w Odebranych",
+    "Start with the system": "Uruchamiaj z systemem",
+    "Starts hidden in the tray": "Startuje ukryty w trayu",
+    "Closing the window keeps the app in the tray": "Zamknięcie okna zostawia program w trayu",
+    "Mark messages as read": "Oznaczaj wiadomości jako przeczytane",
+    "Immediately": "Od razu",
+    "After 2 seconds": "Po 2 sekundach",
+    "Manually": "Ręcznie",
+    "Load remote content automatically": "Automatycznie wczytuj zawartość zdalną",
+    "Images from the internet can reveal that you opened a message":
+        "Obrazy z internetu mogą zdradzić, że otworzyłeś wiadomość",
+    "Dark message content in dark mode": "Ciemna treść wiadomości w trybie ciemnym",
+    "Compose in rich text (HTML)": "Pisz w formacie sformatowanym (HTML)",
+    "Your name": "Twoje imię i nazwisko",
+    "Additional “From” addresses": "Dodatkowe adresy „Od”",
+    "iCloud aliases or custom domain addresses, separated by commas":
+        "Aliasy iCloud lub adresy własnej domeny, oddzielone przecinkami",
+    "Signature": "Podpis",
+    "Signed in as %s": "Zalogowano jako %s",
+    "Clear Local Cache": "Wyczyść lokalną pamięć podręczną",
+    "Sign out of %s?": "Wylogować z %s?",
+    "The password and the local cache will be removed from this computer.":
+        "Hasło i lokalna pamięć podręczna zostaną usunięte z tego komputera.",
+    # tray / notifications
+    "Linux iCloud Mail is still running in the tray": "Linux iCloud Mail nadal działa w trayu",
+    "Right-click the tray icon and choose Quit to close it.":
+        "Kliknij prawym przyciskiem ikonę w trayu i wybierz Zakończ, aby zamknąć program.",
+    "%d new messages": "Nowe wiadomości: %d",
+    "No unread messages": "Brak nieprzeczytanych wiadomości",
+    "%d unread messages": "Nieprzeczytane wiadomości: %d",
+    "Fast native iCloud Mail client": "Szybki, natywny klient iCloud Mail",
+    # shortcuts
+    "Messages": "Wiadomości",
+    "General shortcuts": "Ogólne",
+    "Find": "Szukaj",
+    "Next / previous message": "Następna / poprzednia wiadomość",
+}
+
+
+def _(s):
+    if LANG == "pl":
+        return PL.get(s, s)
+    return s
