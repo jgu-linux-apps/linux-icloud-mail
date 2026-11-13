@@ -47,7 +47,7 @@ Installed-Size: $SIZE
 Depends: python3 (>= 3.10), python3-gi (>= 3.42), gir1.2-gtk-4.0, gir1.2-adw-1 (>= 1.5), gir1.2-webkit-6.0, gir1.2-secret-1, librsvg2-common
 Recommends: gnome-shell-extension-appindicator, gnome-keyring
 Maintainer: JGu <noreply@localhost>
-Homepage: https://www.icloud.com/mail
+Homepage: https://github.com/jgu-linux-apps/linux-icloud-mail
 Description: Fast native iCloud Mail client for Ubuntu
  Linux iCloud Mail is a lightweight GTK 4 / libadwaita mail client for
  iCloud Mail. It talks to iCloud directly over IMAP and SMTP, so it starts

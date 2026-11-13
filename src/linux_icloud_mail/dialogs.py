@@ -189,7 +189,7 @@ def show_about(app, parent):
                             comments=_("Fast native iCloud Mail client") + "\n\n" + CREDITS,
                             license="Free of charge. Modification and redistribution of modified versions "
                                     "are not permitted. See LICENSE.",
-                            website="https://www.icloud.com/mail")
+                            website="https://github.com/jgu-linux-apps/linux-icloud-mail")
     about.present(parent)
 
 

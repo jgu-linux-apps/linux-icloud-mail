@@ -47,6 +47,16 @@ class App(Adw.Application):
         sm = Adw.StyleManager.get_default()
         sm.set_color_scheme(Adw.ColorScheme.DEFAULT)      # follow the system light/dark setting
         sm.connect("notify::dark", lambda *a: self.apply_theme())
+        # motyw wyglądu: System (Adwaita) albo Aurora; pasek folderów po lewej bardziej przezroczysty
+        from .aurora import AuroraTheme
+        self.look = AuroraTheme(extra={
+            False: ".sidebar-pane { background-color: alpha(#ffffff, 0.22); }",
+            True: ".sidebar-pane { background-color: alpha(#ffffff, 0.008); }"})
+        self.look.apply(self.settings.get("theme", "system"))
+        theme_act = Gio.SimpleAction.new_stateful("theme", GLib.VariantType.new("s"),
+                                                  GLib.Variant("s", self.look.name))
+        theme_act.connect("activate", self._on_theme)
+        self.add_action(theme_act)
         self.badge = desktop.LauncherBadge()
 
         def add(name, fn, ptype=None):
@@ -190,6 +200,12 @@ class App(Adw.Application):
     # ================================================================ theme
     def app_icon_name(self):
         return desktop.app_icon_name(Adw.StyleManager.get_default().get_dark())
+
+    def _on_theme(self, action, value):
+        name = value.get_string()
+        action.set_state(value)
+        self.look.apply(name)
+        self.settings["theme"] = name
 
     def apply_theme(self):
         dark = Adw.StyleManager.get_default().get_dark()
