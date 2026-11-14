@@ -54,6 +54,7 @@ very large mailboxes.
 
 ## Changes
 
+- **0.3.2** – new dark-mode app icon in the series style: the app's own symbol on a deep navy tile, the same as the other apps of the series.
 - **0.3.0** – new **Aurora** theme (menu → Theme): pastel glass in light mode, an aurora glow on deep navy in dark mode – it follows the system light/dark setting by itself; violet → cyan gradient on the selected folder and message and on the main buttons, a soft glow when hovering rows, and a more see-through folder sidebar. *System* keeps the standard look. Project link in About and in the package now points to GitHub.
 - **0.2.0** – Undo (5 s) for delete, archive, junk and move; Unsubscribe bar for mailing lists; Mark as Read / Archive / Delete buttons on notifications; calendar invitation bar with Add to Calendar (Linux iCloud Calendar 0.1.6 or newer, otherwise the default calendar app); clicking a notification removes it also when it was shown before the app was restarted or updated
 - **0.1.12** – fix: a deleted or moved message no longer comes back in the list as an empty entry that cannot be opened ("message not found"); a folder refresh that ran while the delete was still waiting for the server re-added it. A message that is no longer on the server now disappears from the list as soon as you try to open it. Delete right after start (before the folder list has loaded, or when offline) no longer offers a permanent delete: the app remembers which folder is Trash between runs, and otherwise loads the folders first and then moves the message to Trash.

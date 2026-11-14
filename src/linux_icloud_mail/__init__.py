@@ -1,6 +1,6 @@
 """Linux iCloud Mail - a fast native iCloud Mail client for Ubuntu."""
 
-VERSION = "0.3.0"
+VERSION = "0.3.2"
 BUILD_DATE = "2026-11-12"
 APP_ID = "io.github.jaro.LinuxIcloudMail"
 APP_NAME = "Linux iCloud Mail"
