@@ -99,15 +99,22 @@ class App(Adw.Application):
     def do_command_line(self, cmd):
         args = cmd.get_arguments()[1:]
         hidden = "--hidden" in args
-        mailtos = [a for a in args if a.startswith("mailto:")]
+        cwd = cmd.get_cwd()
+        mailtos = [(a, cwd) for a in args if a.lower().startswith("mailto:")]
         if not self.started:
             self.started = True
             self.pending_mailto = mailtos
-            self.start(hidden and not mailtos)
-        else:
+            # a mailto: link (e.g. "Share -> E-mail" in another app) opens only the
+            # new-message window; the main window stays in the tray
+            self.start(hidden or bool(mailtos))
+        elif not mailtos:
             self.show_window()
-            for m in mailtos:
-                self.compose(mailto=m)
+        elif self.backend is None:
+            self.pending_mailto += mailtos
+            self.show_window()      # login window
+        else:
+            for m, d in mailtos:
+                self.compose(mailto=m, cwd=d)
         return 0
 
     def do_activate(self):
@@ -172,8 +179,8 @@ class App(Adw.Application):
         for t in self._timers:
             GLib.source_remove(t)
         self._timers = [GLib.timeout_add_seconds(300, self._poll), GLib.timeout_add_seconds(900, self._poll_counts)]
-        for m in self.pending_mailto:
-            self.compose(mailto=m)
+        for m, d in self.pending_mailto:
+            self.compose(mailto=m, cwd=d)
         self.pending_mailto = []
         if self.settings["autostart"]:
             desktop.set_autostart(True)
@@ -393,23 +400,19 @@ class App(Adw.Application):
             GLib.timeout_add(300, select)
 
     # ================================================================ compose
-    def compose(self, mode="new", item=None, parsed=None, mailto=None):
+    def compose(self, mode="new", item=None, parsed=None, mailto=None, cwd=None):
         if self.backend is None:
             return
         from .composer import Composer
-        to = subject = body = None
-        if mailto:
-            u = urllib.parse.urlsplit(mailto)
-            to = urllib.parse.unquote(u.path)
-            q = urllib.parse.parse_qs(u.query)
-            subject = (q.get("subject") or [None])[0]
-            body = (q.get("body") or [None])[0]
-            if q.get("cc"):
-                to = to  # cc handled below
-        c = Composer(self, mode=mode, item=item, parsed=parsed, to=to, subject=subject, body=body)
-        if mailto and urllib.parse.parse_qs(urllib.parse.urlsplit(mailto).query).get("cc"):
-            c.cc_e.set_text(urllib.parse.parse_qs(urllib.parse.urlsplit(mailto).query)["cc"][0])
+        m = parse_mailto(mailto, cwd) if mailto else {}
+        c = Composer(self, mode=mode, item=item, parsed=parsed, to=m.get("to"),
+                     subject=m.get("subject"), body=m.get("body"))
+        if m.get("cc"):
+            c.cc_e.set_text(m["cc"])
             c.ccbcc_btn.set_active(True)
+        if m.get("attach"):
+            c.add_files(m["attach"])
+        c.set_visible(True)
         c.present()
 
     # ================================================================ prefs / account
@@ -520,3 +523,27 @@ class App(Adw.Application):
     def on_error(self, msg):
         if self.win and msg:
             self.win.toast("%s: %s" % (_("Error"), msg[:160]))
+
+
+def parse_mailto(url, cwd=None):
+    """mailto: URL -> dict(to, cc, subject, body, attach=[local paths]).
+
+    Attachments come from attach= / attachment= parameters (as sent by xdg-email and
+    file managers), each either a file:// URI or a plain path; several are allowed."""
+    u = urllib.parse.urlsplit(url)
+    q = urllib.parse.parse_qs(u.query, keep_blank_values=False)
+
+    def first(k):
+        return (q.get(k) or [None])[0]
+    to = [urllib.parse.unquote(u.path)] if u.path else []
+    to += q.get("to", [])
+    paths = []
+    for v in q.get("attach", []) + q.get("attachment", []):
+        if v.lower().startswith("file:"):
+            p = Gio.File.new_for_uri(v).get_path()
+        else:
+            p = os.path.join(cwd or os.getcwd(), os.path.expanduser(v))
+        if p and p not in paths:
+            paths.append(p)
+    return {"to": ", ".join(t for t in to if t) or None, "cc": first("cc"),
+            "subject": first("subject"), "body": first("body"), "attach": paths}

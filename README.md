@@ -1,6 +1,6 @@
 # Linux iCloud Mail
 
-**Version 0.2.0 (2026-11-12)**
+**Version 0.3.3 (2026-11-22)**
 
 A fast, native iCloud Mail client for Ubuntu, built with GTK 4 and libadwaita.
 Instead of wrapping the heavy icloud.com web app, it talks to iCloud Mail
@@ -46,7 +46,7 @@ very large mailboxes.
 - Remote images blocked by default for privacy (one-click load, or allow always in Preferences)
 - Safe message rendering: scripts never run, links open in your browser
 - Print, save as .eml, view source, zoom
-- Can be the default mail app (mailto: links open the composer)
+- Can be the default mail app (mailto: links open the composer, including attachments sent by "Share → E-mail" in other apps)
 - Keyboard shortcuts (Ctrl+N, Ctrl+R, Ctrl+Shift+R, Ctrl+Shift+F, Delete, F5, Ctrl+F, …)
 - Optional autostart, hidden in the tray
 - Password stored in the GNOME keyring (libsecret)
@@ -54,6 +54,7 @@ very large mailboxes.
 
 ## Changes
 
+- **0.3.3** – "Share → E-mail" from other apps (e.g. Linux iCloud Photos): files from the mailto: link (`attach=` / `attachment=`, `file://` URI or plain path, several at once) are added to the new message, and only the new-message window opens in front – the main window no longer pops up instead of it.
 - **0.3.2** – new dark-mode app icon in the series style: the app's own symbol on a deep navy tile, the same as the other apps of the series.
 - **0.3.0** – new **Aurora** theme (menu → Theme): pastel glass in light mode, an aurora glow on deep navy in dark mode – it follows the system light/dark setting by itself; violet → cyan gradient on the selected folder and message and on the main buttons, a soft glow when hovering rows, and a more see-through folder sidebar. *System* keeps the standard look. Project link in About and in the package now points to GitHub.
 - **0.2.0** – Undo (5 s) for delete, archive, junk and move; Unsubscribe bar for mailing lists; Mark as Read / Archive / Delete buttons on notifications; calendar invitation bar with Add to Calendar (Linux iCloud Calendar 0.1.6 or newer, otherwise the default calendar app); clicking a notification removes it also when it was shown before the app was restarted or updated
